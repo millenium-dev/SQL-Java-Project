@@ -1,0 +1,209 @@
+s.execute("BEGIN TRANSACTION");
+ s.execute("CREATE TABLE Paikat (id INTEGER PRIMARY KEY, osoite TEXT UNIQUE)");
+ s.execute("CREATE TABLE Asiakkaat (id INTEGER PRIMARY KEY, nimi TEXT UNIQUE)");
+ s.execute("CREATE TABLE Paketit (id INTEGER PRIMARY KEY, koodi TEXT UNIQUE,
+asiakas_nimi INTEGER REFERENCES Asiakkaat)");
+ s.execute("CREATE TABLE Tapahtumat (id INTEGER PRIMARY KEY, paketit_koodi TEXT
+REFERENCES Paketit, "
+ + "paikka_osoite TEXT REFERENCES Paikat, kuvaus TEXT, aika DATE)");
+ s.execute("COMMIT");
+
+
+package testi;
+import static java.nio.file.StandardOpenOption.CREATE;
+import java.util.Date;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Scanner;
+import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import static javax.swing.DropMode.ON;
+import static jdk.nashorn.internal.runtime.ECMAException.CREATE;
+import static org.sqlite.SQLiteOpenMode.CREATE;
+public class Testi {
+ /**
+ * @param args the command line arguments
+ */
+ public static void main(String[] args) throws SQLException, ParseException {
+ Connection db = DriverManager.getConnection("jdbc:sqlite:testi.db");
+ Scanner reader = new Scanner(System.in);
+ 
+ while(true) {
+ System.out.println("Valitse toiminto (1-9)");
+ String syote = reader.nextLine();
+
+ if (syote.equals("lopeta")) {
+ break;
+ }
+ else if (syote.equals("1")) {
+ Statement s = db.createStatement();
+ s.execute("BEGIN TRANSACTION");
+ s.execute("CREATE TABLE Paikat (id INTEGER PRIMARY KEY, osoite TEXT UNIQUE)");
+ s.execute("CREATE TABLE Asiakkaat (id INTEGER PRIMARY KEY, nimi TEXT UNIQUE)");
+ s.execute("CREATE TABLE Paketit (id INTEGER PRIMARY KEY, koodi TEXT UNIQUE,
+asiakas_nimi INTEGER REFERENCES Asiakkaat)");
+ s.execute("CREATE TABLE Tapahtumat (id INTEGER PRIMARY KEY, paketit_koodi TEXT
+REFERENCES Paketit, "
+ + "paikka_osoite TEXT REFERENCES Paikat, kuvaus TEXT, aika DATE)");
+ s.execute("COMMIT");
+ System.out.println("Tietokanta luotu");
+ }
+ else if (syote.equals("2")) {
+
+ Statement s = db.createStatement();
+ System.out.println("Anna paikan nimi:");
+ String paikka = reader.nextLine();
+ PreparedStatement p = db.prepareStatement("INSERT INTO Paikat(osoite) VALUES (?)");
+ p.setString(1,paikka);
+ p.execute();
+ System.out.println("Paikka lisätty"); 
+
+
+
+
+ }
+ else if (syote.equals("3")) {
+
+
+
+ System.out.println("Anna asiakkaan nimi:");
+ String asiakas = reader.nextLine();
+ PreparedStatement k = db.prepareStatement("INSERT INTO Asiakkaat(nimi) VALUES (?)");
+ k.setString(1,asiakas);
+ k.execute();
+ System.out.println("Asiakas lisätty");
+
+
+ }
+ else if (syote.equals("4")) {
+ System.out.println("Anna paketin seurantakoodi:");
+ String seurantakoodi = reader.nextLine();
+ System.out.println("Anna asiakkaan nimi:");
+ String asiakas = reader.nextLine();
+
+
+ PreparedStatement p = db.prepareStatement("SELECT nimi FROM Asiakkaat WHERE
+nimi=?");
+ p.setString(1,asiakas);
+ ResultSet r = p.executeQuery();
+ if (r.next() == true ) {
+ PreparedStatement a = db.prepareStatement("INSERT INTO Paketit(koodi, asiakas_nimi) VALUES
+(?,?)");
+ a.setString(1,seurantakoodi);
+ a.setString(2,asiakas);
+ System.out.println("Paketti lisätty");
+ } else {
+ System.out.println("VIRHE: Asiakasta ei ole olemassa");
+ }
+ }
+ else if (syote.equals("5")) {
+ System.out.println("Anna paketin seurantakoodi:");
+ String seurantakoodi = reader.nextLine();
+
+ PreparedStatement b = db.prepareStatement("SELECT nimi FROM Paketit WHERE koodi=?");
+ b.setString(1,seurantakoodi);
+
+ ResultSet c = b.executeQuery();
+
+ if (c.next() == false) {
+ System.out.println("VIRHE: Seurantakoodi on väärä");
+ continue;
+ }
+
+ System.out.println("Anna tapahtuman paikka:");
+ String paikka = reader.nextLine();
+ 
+ PreparedStatement a = db.prepareStatement("SELECT nimi FROM Paikat WHERE osoite=?");
+ a.setString(1,paikka);
+
+ ResultSet r = a.executeQuery();
+
+ if (r.next() == false) {
+ System.out.println("VIRHE: Paikkaa ei ole olemassa");
+ continue;
+ }
+
+ System.out.println("Anna tapahtuman kuvaus:");
+ String tapahtuma = reader.nextLine();
+
+
+ PreparedStatement p = db.prepareStatement("INSERT INTO Tapahtumat(paketit_koodi,
+paikka_osoite, kuvaus, aika) VALUES (?,?,?,?)");
+ p.setString(1,seurantakoodi);
+ p.setString(2,paikka);
+ p.setString(3,tapahtuma);
+
+ LocalDateTime dateTime = LocalDateTime.now();
+ DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+ p.setString(4,(dateTime.format(formatter)));
+ System.out.println("Tapahtuma lisätty");
+ }
+ else if (syote.equals("6")) {
+ System.out.println("Anna paketin seurantakoodi:");
+ String code = reader.nextLine();
+
+ PreparedStatement p = db.prepareStatement("SELECT * FROM Paketit WHERE koodi=?");
+ p.setString(1,code);
+ ResultSet r = p.executeQuery();
+
+ if (r.next()) {
+ PreparedStatement time = db.prepareStatement("SELECT aika,paikka_osoite,kuvaus FROM
+Tapahtumat WHERE paketit_koodi=?");
+ time.setString(1,code);
+ ResultSet a = time.executeQuery();
+ System.out.println(a.getTime("aika") + ", " + a.getString("paikka_osoite") + a.getString("kuvaus"))
+;
+ } else {
+ System.out.println("VIRHE: Väärä seurantakoodi");
+ }
+ }
+ else if (syote.equals("7")) {
+
+ System.out.println("Anna asiakkaan nimi:");
+ String nimi = reader.nextLine();
+ PreparedStatement p = db.prepareStatement("SELECT koodi, COUNT(koodi) FROM Paketit
+WHERE asiakas_nimi=? GROUP BY Paketit.koodi");
+ p.setString(1,nimi);
+ ResultSet r = p.executeQuery();
+
+ if (r.next()) {
+ System.out.println(r);
+ } else {
+ System.out.println("VIRHE: Asiakasta ei löytynyt");
+ }
+
+}
+ else if (syote.equals("8")) {
+
+ System.out.println("Anna paikan nimi:");
+ String paikka = reader.nextLine();
+ System.out.println("Anna päivämäärä:");
+ String date = reader.next();
+ SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
+ Date date2=null;
+ date2 = dateFormat.parse(date);
+
+ PreparedStatement p = db.prepareStatement("SELECT COUNT(*) FROM Tapahtumat WHERE
+paikka=? AND aika =?");
+ p.setString(1,paikka);
+ //p.setDate(2,date2); //
+ ResultSet r = p.executeQuery();
+ if (r.next()) {
+ System.out.println("Tapahtumien määrä: "+ r);
+ } else {
+ System.out.println("Kyseisellä päivällä ei ole tapahtumia");
+ }
+ }
+ 
+}
+
+}
+}
